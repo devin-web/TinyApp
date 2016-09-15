@@ -43,28 +43,33 @@ function generateRandomString() {
   return returnString;
 }
 
-app.use(methodOverride('_method'));
+function setLongURL( cb, shortURL, longURL ){
+  MongoClient.connect(MONGODB_URI, (err, db) => {
 
-app.delete("/urls/:urlToDelete", (req, res) => {
-  console.log( "Deleting:", req.params.urlToDelete );
-  delete urlDatabase.urls[req.params.urlToDelete];
-  //res.end( "Deleting OK" );
-  res.redirect("/urls");
-});
+    if( err ) {
+      console.log('Could not connect! Unexpected error. Details below.');
+      cb( err );
+    }
 
-app.set('view engine', 'ejs');
+    console.log('Connected to the database!');
+    let collection = db.collection("urls");
 
-app.get("/", (req, res) => {
-  res.render( "pages/index" );
-});
-
-app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
-});
-
-// app.get("/urls.json", (req, res) => {
-//   res.json(urlDatabase);
-// });
+    collection.update(
+      { "shortURL":
+        {
+          $eq: shortURL
+        }
+      },
+      { $set:
+        {
+          "longURL": longURL
+        }
+      });
+    console.log('Disconnecting from Mongo!');
+    db.close();
+    cb( null );
+  });//MongoClient connect
+}
 
 function getAllURLs( cb ){
   MongoClient.connect(MONGODB_URI, (err, db) => {
@@ -95,6 +100,52 @@ function getAllURLs( cb ){
   }); //MongoClient connect
 }
 
+function getLongURLfromShort( shortURL, cb ){
+  MongoClient.connect(MONGODB_URI, (err, db) => {
+
+    if (err) {
+      console.log('Could not connect! Unexpected error. Details below.');
+      cb( err );
+    }
+
+    console.log('Connected to the database!');
+    let collection = db.collection("urls");
+
+    console.log('Retreiving document from the "test" collection...');
+    collection.findOne( { "shortURL": shortURL} ).then( (value) =>
+      {
+        console.log("db value:", value);
+        var longURL = value.longURL;
+        console.log( "Calling cb with longURL", longURL );
+        cb( null, longURL );
+      });
+    db.close();
+  }); //MongoClient connect
+}
+
+app.use(methodOverride('_method'));
+
+app.delete("/urls/:urlToDelete", (req, res) => {
+  console.log( "Deleting:", req.params.urlToDelete );
+  delete urlDatabase.urls[req.params.urlToDelete];
+  //res.end( "Deleting OK" );
+  res.redirect("/urls");
+});
+
+app.set('view engine', 'ejs');
+
+app.get("/", (req, res) => {
+  res.render( "pages/index" );
+});
+
+app.listen(PORT, () => {
+  console.log(`Example app listening on port ${PORT}!`);
+});
+
+// app.get("/urls.json", (req, res) => {
+//   res.json(urlDatabase);
+// });
+
 app.get("/urls", (req, res) => {
   function dbResponse( err, data ){
     if(err){
@@ -117,34 +168,17 @@ app.get("/u/*", (req, res) =>{
   console.log( req.url );
   let splitURL  = req.url.split("/");
   let shortURL  = splitURL[splitURL.length - 1];
-  let longURL   = urlDatabase.urls[shortURL];
-  console.log(  longURL );
-  res.redirect( longURL );
-});
-
-function getLongURLfromShort( shortURL, cb ){
-  MongoClient.connect(MONGODB_URI, (err, db) => {
-
-    if (err) {
-      console.log('Could not connect! Unexpected error. Details below.');
-      throw err;
+  function doRedirect( err, longURL ){
+    if(err){
+      res.render( "500_server_error" );
     }
-
-    console.log('Connected to the database!');
-    let collection = db.collection("urls");
-
-    console.log('Retreiving document from the "test" collection...');
-    collection.findOne( { "shortURL": shortURL} ).then( (value) =>
-      {
-        console.log("db value:", value);
-        var longURL = value.longURL;
-        console.log( "Calling cb with longURL", longURL );
-        cb( longURL );
-      });
-    db.close();
-  }); //MongoClient connect
-}
-
+    else {
+      console.log(  longURL );
+      res.redirect( longURL );
+    }
+  }
+  getLongURLfromShort( shortURL, doRedirect );
+});
 
 app.get("/urls/:shortURL", (req,res) =>{
   let shortURL = req.params.shortURL;
@@ -155,19 +189,32 @@ app.get("/urls/:shortURL", (req,res) =>{
                               }
                       };
 
-  function respondToGetLongURL( err, longURL ){
-    console.log( "response called" );
-    templateURLs.url.myLongUrl = longURL;
-    res.render( "urls_show", templateURLs );
+  function showLongURL( err, longURL ){
+    if(err){
+      res.render( "500_server_error" );
+    }
+    else {
+      console.log( "response called" );
+      templateURLs.url.myLongUrl = longURL;
+      res.render( "urls_show", templateURLs );
+    }
   }
-  getLongURLfromShort( shortURL, respondToGetLongURL );
+  getLongURLfromShort( shortURL, showLongURL );
 });
 
 app.put ("/urls/:shortURL", (req, res) =>{
   console.log( req.body.shortURL );
   console.log( req.body.longURL );
-  urlDatabase.urls[ req.body.shortURL ] = req.body.longURL;
-  res.redirect("/urls");
+  //urlDatabase.urls[ req.body.shortURL ] = req.body.longURL;
+  function longURLSetDone( err ){
+    if( err ){
+      res.redirect("500_server_error");
+    }
+    else{
+      res.redirect("/urls");
+    }
+  }
+  setLongURL( longURLSetDone, req.body.shortURL, req.body.longURL );
 });
 
 app.post("/urls", (req, res) => {
