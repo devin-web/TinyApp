@@ -62,12 +62,51 @@ app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
 
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
+// app.get("/urls.json", (req, res) => {
+//   res.json(urlDatabase);
+// });
+
+function getAllURLs( cb ){
+  MongoClient.connect(MONGODB_URI, (err, db) => {
+
+    if( err ) {
+      console.log('Could not connect! Unexpected error. Details below.');
+      cb( err );
+    }
+
+    console.log('Connected to the database!');
+    let collection = db.collection("urls");
+
+    console.log('Retreiving document from the "test" collection...');
+    collection.find().toArray((err, resultsArray) => {
+      console.log('results: ', resultsArray);
+      let results = { urls:{} };
+      for( let resultIndex in resultsArray ){
+        console.log("resultIndex:", resultIndex );
+        console.log( "\nshortURL:", resultsArray[resultIndex].shortURL );
+        console.log( "\nlongURL:", resultsArray[resultIndex].longURL, "\n" );
+        results.urls[resultsArray[resultIndex].shortURL]
+                   = resultsArray[resultIndex].longURL;
+      }
+      console.log('Disconnecting from Mongo!');
+      db.close();
+      cb( err, results );
+    });
+  }); //MongoClient connect
+}
 
 app.get("/urls", (req, res) => {
-  res.render("urls_index", urlDatabase );
+  function dbResponse( err, data ){
+    if(err){
+      res.render( "500_server_error" );
+    }
+    else {
+      console.log( "urls_index with data:", data );
+      res.render( "urls_index", data );
+    }
+  }
+
+  getAllURLs(dbResponse)
 })
 
 app.get("/urls/new", (req, res) => {
@@ -95,7 +134,7 @@ function getLongURLfromShort( shortURL, cb ){
     let collection = db.collection("urls");
 
     console.log('Retreiving document from the "test" collection...');
-    collection.findOne({shortURL: shortURL} ).then( (value) =>
+    collection.findOne( { "shortURL": shortURL} ).then( (value) =>
       {
         console.log("db value:", value);
         var longURL = value.longURL;
@@ -103,7 +142,7 @@ function getLongURLfromShort( shortURL, cb ){
         cb( longURL );
       });
     db.close();
-  });
+  }); //MongoClient connect
 }
 
 
@@ -116,7 +155,7 @@ app.get("/urls/:shortURL", (req,res) =>{
                               }
                       };
 
-  function respondToGetLongURL( longURL ){
+  function respondToGetLongURL( err, longURL ){
     console.log( "response called" );
     templateURLs.url.myLongUrl = longURL;
     res.render( "urls_show", templateURLs );
