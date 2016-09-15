@@ -35,45 +35,15 @@ function generateRandomString() {
   }
   return returnString;
 }
-// app.use(methodOverride('_method'){
-// }
-// override with POST having ?_method=DELETE
+
 app.use(methodOverride('_method'));
 
-app.delete("/urls/:id", (req, res) => {
-  console.log( "Deleting:", req.params.id );
-  res.end( "Deleting OK" );
+app.delete("/urls/:urlToDelete", (req, res) => {
+  console.log( "Deleting:", req.params.urlToDelete );
+  delete urlDatabase.urls[req.params.urlToDelete];
+  //res.end( "Deleting OK" );
+  res.redirect("/urls");
 });
-/*
-app.use( methodOverride( function(req, res, next){
-  if (req.body && typeof req.body === 'object' && '_method' in req.body) {
-    // look in urlencoded POST bodies and delete it
-    var method = req.body._method;
-    delete req.body._method;
-    console.log( "Method:", method );
-    return method;
-  }
-  //console.log( req, "\n\n" );
-  if( req.body ){
-    console.log( "req.body:", req.body );
-    if( typeof req.body === 'object'){
-      console.log( "req.body is object" );
-      console.log(  "\n==================\n", req.body,
-                    "\n==================\n", req.header.url,
-                    "\n==================\n", req.header );
-      if( '_method' in req.body ){
-        console.log( "_method:", re.body._method );
-      }
-    }
-
-  }
-*/
-
-/* else{
-    next();
-  }*/
-//  return null;
-//}));
 
 app.set('view engine', 'ejs');
 
@@ -97,13 +67,30 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 
-app.get("/urls/*", (req, res) =>{
+app.get("/u/*", (req, res) =>{
   console.log( req.url );
   var splitURL  = req.url.split("/");
   var shortURL  = splitURL[splitURL.length - 1];
   var longURL   = urlDatabase.urls[shortURL];
   console.log(  longURL );
   res.redirect( longURL );
+});
+
+app.get("/urls/:shortURL", (req,res) =>{
+   var longURL = urlDatabase.urls[req.params.shortURL];
+
+   res.render( "urls_show",
+              { url: {  myShortUrl: req.params.shortURL,
+                         myLongUrl: longURL
+                      }
+              });
+});
+
+app.put("/urls/:shortURL", (req, res) =>{
+  console.log( req.body.shortURL );
+  console.log( req.body.longURL );
+  urlDatabase.urls[ req.body.shortURL ] = req.body.longURL;
+  res.redirect("/urls");
 });
 
 app.post("/urls", (req, res) => {

@@ -3,9 +3,12 @@
 <body>
   <ul>
     <% for(var url in urls) {%>
-    <li><%= url %>
+    <li>
+      <%= url %>
+      <%= urls[url] %>
+      <a href=<%= "/urls/" + url + "/" %> >Edit</a>
       <form style="display:inline-block" method="POST" action=
-        <%="/urls/"  +url+ "?_method=DELETE"%>>
+        <%="/urls/"  + url + "?_method=DELETE"%>>
         <input type="submit" value="Delete">
       </form>
     </li>
