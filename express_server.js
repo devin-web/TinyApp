@@ -123,13 +123,76 @@ function getLongURLfromShort( shortURL, cb ){
   }); //MongoClient connect
 }
 
+function addNewURL( longURL, cb ){
+   MongoClient.connect(MONGODB_URI, (err, db) => {
+
+    if (err) {
+      console.log('Could not connect! Unexpected error. Details below.');
+      cb( err );
+    }
+
+    console.log('Connected to the database!');
+    let collection = db.collection("urls");
+
+    function findNewShortURL() {
+
+      let newShortURL = generateRandomString();
+
+      collection.findOne( { "shortURL": newShortURL } ).then( (value) => {
+        if ( value !== null ){
+          findNewShortURL();
+        }
+        else {
+          collection.insert( {
+              "shortURL": newShortURL,
+              "longURL": longURL
+          });
+
+          db.close();
+          cb( null, newShortURL );
+        }
+
+      });
+    }
+    findNewShortURL();
+  });
+}
+
+function deleteRecord( shortURL, cb ){
+   MongoClient.connect(MONGODB_URI, (err, db) => {
+
+    if (err) {
+      console.log('Could not connect! Unexpected error. Details below.');
+      cb( err );
+    }
+
+    console.log('Connected to the database!');
+    let collection = db.collection("urls");
+
+    collection.remove({  "shortURL": shortURL }).then( (value) => {
+      cb( null );
+    });
+  });
+}
+
 app.use(methodOverride('_method'));
 
 app.delete("/urls/:urlToDelete", (req, res) => {
   console.log( "Deleting:", req.params.urlToDelete );
-  delete urlDatabase.urls[req.params.urlToDelete];
+
+  function deletionComplete( err ){
+    if( err ){
+      res.redirect( "500_server_error" );
+    }
+    else
+    {
+      res.redirect("/urls")
+    }
+  }
+  deleteRecord( req.params.urlToDelete, deletionComplete );
+  // delete urlDatabase.urls[req.params.urlToDelete];
   //res.end( "Deleting OK" );
-  res.redirect("/urls");
+  //res.redirect("/urls");
 });
 
 app.set('view engine', 'ejs');
@@ -208,17 +271,19 @@ app.put ("/urls/:shortURL", (req, res) =>{
   //urlDatabase.urls[ req.body.shortURL ] = req.body.longURL;
   function longURLSetDone( err ){
     if( err ){
-      res.redirect("500_server_error");
+      res.redirect( "500_server_error" );
     }
     else{
-      res.redirect("/urls");
+      res.redirect( "/urls" );
     }
   }
   setLongURL( longURLSetDone, req.body.shortURL, req.body.longURL );
 });
 
+//This post comes from urls/new
 app.post("/urls", (req, res) => {
-  var longUrl = req.body;
+  var longURL = req.body.longURL;
+  /*
   var newShortUrl = generateRandomString();
   console.log( "new URL: ", newShortUrl, longUrl.longURL );  // debug statement to see POST parameters
 
@@ -227,8 +292,17 @@ app.post("/urls", (req, res) => {
     console.log( newShortUrl, longUrl.longURL );
   }
   urlDatabase.urls[newShortUrl] = longUrl.longURL;
-
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  */
+  function newURLaddedToDB( err, newShortUrl ){
+    if( err ){
+      res.redirect( "500_server_error" );
+    }
+    else{
+      res.redirect( "/urls" );
+    }
+  }
+  addNewURL( longURL, newURLaddedToDB );
+  //res.send("Ok");         // Respond with 'Ok' (we will replace this)
 });
 
 app.get("/hello", (req, res) => {
