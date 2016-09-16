@@ -2,7 +2,7 @@
 
 const randString = require("./randomString");
 const MongoClient = require("mongodb").MongoClient;
-const MONGODB_URI = "mongodb://127.0.0.1:27017/url_shortener";
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/url_shortener";
 
 module.exports = {
   connectToDB: function( cb ){
@@ -34,27 +34,18 @@ module.exports = {
           "longURL": longURL
         }
       });
-    console.log('Disconnecting from Mongo!');
-    //db.close();
     cb( null );
   },
 
   getAllURLs: function( db, cb ){
     let collection = db.collection("urls");
 
-    console.log('Retreiving document from the "test" collection...');
     collection.find().toArray((err, resultsArray) => {
-      console.log('results: ', resultsArray);
       let results = { urls:{} };
       for( let resultIndex in resultsArray ){
-        console.log("resultIndex:", resultIndex );
-        console.log( "\nshortURL:", resultsArray[resultIndex].shortURL );
-        console.log( "\nlongURL:", resultsArray[resultIndex].longURL, "\n" );
         results.urls[resultsArray[resultIndex].shortURL]
                    = resultsArray[resultIndex].longURL;
       }
-      console.log('Disconnecting from Mongo!');
-      //db.close();
       cb( err, results );
     });
   },
@@ -62,15 +53,11 @@ module.exports = {
   getLongURLfromShort: function( db, shortURL, cb ){
     let collection = db.collection("urls");
 
-    console.log('Retreiving document from the "test" collection...');
     collection.findOne( { "shortURL": shortURL} ).then( (value) =>
     {
-      console.log("db value:", value);
       var longURL = value.longURL;
-      console.log( "Calling cb with longURL", longURL );
       cb( null, longURL );
     });
-      //db.close();
   },
 
   addNewURL: function( db, longURL, cb ){
@@ -88,11 +75,8 @@ module.exports = {
               "shortURL": newShortURL,
               "longURL": longURL
           });
-
-          //db.close();
           cb( null, newShortURL );
         }
-
       });
     }
     findNewShortURL();

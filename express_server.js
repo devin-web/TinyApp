@@ -13,14 +13,6 @@ app.use(bodyParser.urlencoded(
 {
   extended: true
 }));
-/*
-var urlDatabase = {
-  urls: {
-    "b2xVn2": "http://www.lighthouselabs.ca",
-    "9sm5xK": "http://www.google.com"
-  }
-};
-*/
 
 app.use(methodOverride('_method'));
 
@@ -37,9 +29,6 @@ app.delete("/urls/:urlToDelete", (req, res) => {
     }
   }
   tinyAppDB.deleteRecord( dataBase, req.params.urlToDelete, deletionComplete );
-  // delete urlDatabase.urls[req.params.urlToDelete];
-  //res.end( "Deleting OK" );
-  //res.redirect("/urls");
 });
 
 app.set('view engine', 'ejs');
@@ -66,7 +55,6 @@ app.get("/urls", (req, res) => {
       res.render( "500_server_error" );
     }
     else {
-      console.log( "urls_index with data:", data );
       res.render( "urls_index", data );
     }
   }
@@ -79,7 +67,6 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/u/*", (req, res) =>{
-  console.log( req.url );
   let splitURL  = req.url.split("/");
   let shortURL  = splitURL[splitURL.length - 1];
   function doRedirect( err, longURL ){
@@ -87,7 +74,6 @@ app.get("/u/*", (req, res) =>{
       res.render( "500_server_error" );
     }
     else {
-      console.log(  longURL );
       res.redirect( longURL );
     }
   }
@@ -96,7 +82,7 @@ app.get("/u/*", (req, res) =>{
 
 app.get("/urls/:shortURL", (req,res) =>{
   let shortURL = req.params.shortURL;
-  let longURL = "";//urlDatabase.urls[req.params.shortURL];
+  let longURL = "";
   let templateURLs = {
                         url:  {  myShortUrl:  shortURL,
                                  myLongUrl:   longURL
@@ -108,7 +94,6 @@ app.get("/urls/:shortURL", (req,res) =>{
       res.render( "500_server_error" );
     }
     else {
-      console.log( "response called" );
       templateURLs.url.myLongUrl = longURL;
       res.render( "urls_show", templateURLs );
     }
@@ -117,9 +102,6 @@ app.get("/urls/:shortURL", (req,res) =>{
 });
 
 app.put ("/urls/:shortURL", (req, res) =>{
-  console.log( req.body.shortURL );
-  console.log( req.body.longURL );
-  //urlDatabase.urls[ req.body.shortURL ] = req.body.longURL;
   function longURLSetDone( err ){
     if( err ){
       res.redirect( "500_server_error" );
