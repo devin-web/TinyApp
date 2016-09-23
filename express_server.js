@@ -6,6 +6,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const methodOverride = require('method-override');
 const tinyAppDB = require( "./tinyAppDB" );
+const cookieParser = require('cookie-parser')
 
 var dataBase;
 var app = express();
@@ -19,6 +20,8 @@ app.use(bodyParser.urlencoded(
 }));
 
 app.use(methodOverride('_method'));
+
+app.use(cookieParser('this is my secret string for signing cookies'));
 
 app.delete("/urls/:urlToDelete", (req, res) => {
   console.log( "Deleting:", req.params.urlToDelete );
@@ -37,7 +40,12 @@ app.delete("/urls/:urlToDelete", (req, res) => {
 
 
 app.get("/", (req, res) => {
-  res.render( "pages/index" );
+  let templateVars = {
+    username: req.cookies["username"],
+  };
+
+  //res.render("index", templateVars);
+  res.render( "pages/index", templateVars );
 });
 
 app.get("/urls", (req, res) => {
@@ -117,6 +125,22 @@ app.post("/urls", (req, res) => {
     }
   }
   tinyAppDB.addNewURL( dataBase, longURL, newURLaddedToDB );
+});
+
+//this post comes from  "/" login form
+app.post("/login", (req, res) => {
+  res.cookie( "username", req.body.username );
+
+  res.redirect( "/" );
+
+});
+
+//this post comes from  "/" login form
+app.post("/logout", (req, res) => {
+  res.cookie( "username", "" );
+
+  res.redirect( "/" );
+
 });
 
 
