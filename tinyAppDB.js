@@ -53,8 +53,7 @@ module.exports = {
   getLongURLfromShort: function( db, shortURL, cb ){
     let collection = db.collection("urls");
 
-    collection.findOne( { "shortURL": shortURL} ).then( (value) =>
-    {
+    collection.findOne( { "shortURL": shortURL} ).then( (value) => {
       var longURL = value.longURL;
       cb( null, longURL );
     });
@@ -82,7 +81,7 @@ module.exports = {
     findNewShortURL();
   },
 
-  deleteRecord: function( db, shortURL, cb ){
+  deleteRecord: function( db, shortURL, cb ) {
     let collection = db.collection("urls");
 
     collection.remove({  "shortURL": shortURL }).then( (value) => {

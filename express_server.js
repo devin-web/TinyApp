@@ -1,5 +1,7 @@
 "use strict";
 
+require('dotenv').config();
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const methodOverride = require('method-override');
@@ -8,6 +10,8 @@ const tinyAppDB = require( "./tinyAppDB" );
 var dataBase;
 var app = express();
 const PORT = process.env.PORT || 8080; // default port 8080
+
+app.set('view engine', 'ejs');
 
 app.use(bodyParser.urlencoded(
 {
@@ -31,22 +35,9 @@ app.delete("/urls/:urlToDelete", (req, res) => {
   tinyAppDB.deleteRecord( dataBase, req.params.urlToDelete, deletionComplete );
 });
 
-app.set('view engine', 'ejs');
 
 app.get("/", (req, res) => {
   res.render( "pages/index" );
-});
-
-app.listen(PORT, () => {
-  console.log(`Server app listening on port ${PORT}!`);
-  function onConnectionComplete( err, db ){
-    if( err ){
-      console.log("Fatal Error, no DB connection");
-      return;
-    }
-    dataBase = db;
-  }
-  tinyAppDB.connectToDB( onConnectionComplete );
 });
 
 app.get("/urls", (req, res) => {
@@ -66,9 +57,9 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 
-app.get("/u/*", (req, res) =>{
-  let splitURL  = req.url.split("/");
-  let shortURL  = splitURL[splitURL.length - 1];
+app.get("/u/:shortURL", (req, res) =>{
+  //let splitURL  = req.url.split("/");
+  let shortURL  = req.params.shortURL;//splitURL[splitURL.length - 1];
   function doRedirect( err, longURL ){
     if(err){
       res.render( "500_server_error" );
@@ -128,7 +119,15 @@ app.post("/urls", (req, res) => {
   tinyAppDB.addNewURL( dataBase, longURL, newURLaddedToDB );
 });
 
-app.get("/hello", (req, res) => {
-  res.end("<html><body>Hello <b>World</b></body></html>\n");
-});
 
+app.listen(PORT, () => {
+  console.log(`Server app listening on port ${PORT}!`);
+  function onConnectionComplete( err, db ){
+    if( err ){
+      console.log("Fatal Error, no DB connection");
+      return;
+    }
+    dataBase = db;
+  }
+  tinyAppDB.connectToDB( onConnectionComplete );
+});

@@ -1,7 +1,7 @@
 <h3>
   <%= url.myShortUrl %>
 </h3>
-<form action=<%= "/urls/" + url.myShortUrl + "?_method=PUT" %> method="POST" style="margin:150px;">
+<form action="<%= "/urls/" + url.myShortUrl + "?_method=PUT" %>" method="POST" style="margin:150px;">
       <label for="longURL">Enter a new URL:</label>
         <input type="hidden" value=<%= url.myShortUrl %> id="shortURL" name="shortURL">
         <input id="longURL" type="text" name="longURL"
